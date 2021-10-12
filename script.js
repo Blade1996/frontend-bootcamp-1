@@ -7,8 +7,12 @@ if(localStorage.getItem('dataJson') == null){
 
 let dataTeachers = JSON.parse(localStorage.getItem('dataJson'));
 
+let form = document.getElementById('myForm');
+
 let tabla = document.getElementById('tableTeachers');
 let tableBody = tabla.getElementsByTagName('tbody')[0];
+
+let selectSpecialty = document.getElementById('specialty');
 
 
 const loadTable = (source) => {
@@ -25,7 +29,7 @@ const loadTable = (source) => {
         updBtn.innerHTML = "-"
         for (const property in element) {
             let cell = document.createElement('td');
-            cell.innerHTML = element[property];
+            cell.innerHTML = element[property].name || element[property]  || '';
             row.appendChild(cell);
         }
         let cellActions = row.insertCell();
@@ -36,67 +40,70 @@ const loadTable = (source) => {
 }
 
 function dataFromForm() {
-    const name = document.getElementById('name');
-    const age = document.getElementById('age');
-    const job = document.getElementById('job');
-    const salary = document.getElementById('salary');
-    const job = document.getElementById('job');
-    return {name: name.value, age: age.value, job: job.value, salary: salary.value};
+    const name = document.getElementById('name').value;
+    const lastName = document.getElementById('lastName').value;
+    const age = document.getElementById('age').value;
+    const specialty = selectSpecialty.value;
+    var specialtyName = selectSpecialty.options[selectSpecialty.selectedIndex].text;
+    const exp = document.getElementById('exp').value;
+    const linkedin = document.getElementById('linkedin').value || '';
+    return { name, lastName, age, specialty: {
+        name: specialtyName,
+        value: Number(specialty),
+    }, exp, linkedin};
 }
+
+loadTable(dataTeachers);
 
 
 
 const createTeacher = (data) => {
-    let { data } =  sendRequest(data);
-    console.log(data);
-    localStorage.setItem('dataJson', JSON.stringify(dataFromDB));
+   let response = sendRequest(data);
+   dataTeachers.push(data);
+   localStorage.setItem('dataJson', JSON.stringify(dataTeachers));
+   return response
     form.reset();
 }
 
-const increase = (index, data) => {
-    dataFromDB[index] = data;
-    localStorage.setItem('dataJson', JSON.stringify(dataFromDB));
+const increase = (index) => {
+    dataTeachers[index].specialty.value += (dataTeachers[index].specialty.value * 0.10);
+    localStorage.setItem('dataJson', JSON.stringify(dataTeachers));
     form.reset();
 }
 
-const decrease = (index, data) => {
-    dataFromDB[index] = data;
-    localStorage.setItem('dataJson', JSON.stringify(dataFromDB));
+const decrease = (index) => {
+    dataTeachers[index].specialty.value -= (dataTeachers[index].specialty.value * 0.10);
+    localStorage.setItem('dataJson', JSON.stringify(dataTeachers));
     form.reset();
 }
 
 document.querySelector('#createBtn').addEventListener('click', (e) => {
     e.preventDefault();
-    create(dataFromForm());
-    loadTable(dataFromDB);
+    createTeacher(dataFromForm());
+    loadTable(dataTeachers);
 });
-
-document.querySelector('#updateBtn').addEventListener('click', (e) => {
-    e.preventDefault();
-    let record = document.querySelector('#updateBtn').getAttribute('record');
-    update(record, dataFromForm());
-    loadTable(dataFromDB);
-})
 
 tabla.addEventListener('click', function(e){
     let event = e.target;
     let record = event.getAttribute('record-id');
     let action = event.getAttribute('id')
     if(event.nodeName === 'BUTTON'){
-        if(action === 'delete'){
-            erase(record);
-        }else if (action === 'update'){
-            getData(record);
-            document.querySelector('#updateBtn').setAttribute('record', record);
+        if(action === 'increase'){
+            increase(record);
+        }else if (action === 'decrease'){
+            decrease(record);
         }
     };
-    loadTable(dataFromDB);
+    loadTable(dataTeachers);
 })
 
 
 const sendRequest = (data) => {
     axios.post(URL, data)
-    .then(response => response)
+    .then(response =>
+        { const addedUser = response.data;
+        return addedUser;
+    })
     .catch(error => console.error(error));
 };
 
